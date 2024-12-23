@@ -2,10 +2,153 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=src/ui.html">
-    <title>Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#317EFB">
+    <title>Plant Disease Classifier</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(45deg, #00ff7f, #1e90ff, #ff6347, #8a2be2);
+            background-size: 400% 400%;
+            animation: gradient-animation 8s ease infinite;
+        }
+
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; } 
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            margin-top: 20px;
+            color: black;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 5px white;
+        }
+
+        .container {
+            width: 300px;
+            margin: 50px auto;
+            background-color: whitesmoke;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .upload-container {
+            margin: 40px 0;
+            position: relative;
+        }
+
+        #upload-label {
+            display: inline-block;
+            background-color: #d2e601;
+            color: rgb(26, 2, 2);
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 10px 30px;
+            border-radius: 10%;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #upload-label:after {
+            display: block;
+            font-size: 1.5em;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #upload {
+            display: none;
+        }
+
+        #predict-button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #0ac981;
+            color: white;
+            font-size: 1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #output {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: black;
+        }
+    </style>
 </head>
 <body>
-    <p>If you are not redirected automatically, follow this <a href="src/ui.html">link to ui.html</a>.</p>
+    <div class="container">
+        <h1>Plant Disease Classifier</h1>
+        <div class="upload-container">
+            <label id="upload-label" for="upload">Upload Image</label>
+            <input type="file" id="upload" accept="image/*" capture="camera">
+        </div>
+        <div id="preview-container">
+            <img id="preview" alt="Image preview will appear here" style="max-width: 100%; display: none;" />
+        </div>
+        <button id="predict-button" style="display: none;">Predict</button>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        let model;
+
+        // Load the model
+        async function loadModel() {
+            const modelUrl = 'https://<username>.github.io/<repository-name>/model.json'; // Replace with your model's URL
+            model = await tf.loadLayersModel(modelUrl);
+            console.log('Model loaded successfully');
+        }
+
+        // Process and predict the uploaded image
+        document.getElementById('upload').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const img = document.getElementById('preview');
+                img.src = URL.createObjectURL(file);
+                img.style.display = 'block';
+                document.getElementById('predict-button').style.display = 'block';
+            }
+        });
+
+        document.getElementById('predict-button').addEventListener('click', async () => {
+            const img = document.getElementById('preview');
+            if (img.src) {
+                // Wait for the image to load
+                img.onload = async () => {
+                    const tensor = tf.browser.fromPixels(img)
+                        .resizeNearestNeighbor([224, 224]) // Match model input size
+                        .toFloat()
+                        .div(255.0) // Normalize pixel values
+                        .expandDims();
+
+                    const prediction = model.predict(tensor);
+                    const classes = ['Class 1', 'Class 2', 'Class 3']; // Replace with your class labels
+                    const resultIndex = prediction.argMax(-1).dataSync()[0];
+                    const result = classes[resultIndex];
+
+                    document.getElementById('output').textContent = `Prediction: ${result}`;
+                };
+            }
+        });
+
+        // Load the model when the page loads
+        window.onload = loadModel;
+    </script>
 </body>
 </html>
